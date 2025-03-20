@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
@@ -23,7 +25,16 @@ func ReadDate(filePath string) (date string, err error) {
 
 	x, err := exif.Decode(file)
 	if err != nil {
-		return "", err
+		fileInfo, errStat := os.Stat(filePath)
+		if errStat != nil {
+			return "", errStat
+		}
+		d := fileInfo.Sys().(*syscall.Win32FileAttributeData)
+		cTime := time.Unix(0, d.LastWriteTime.Nanoseconds())
+		return cTime.Format("2006:01:02"), nil
+
+		// return fileInfo.ModTime().Format("2006:01:02"), nil
+		// TODO: checkout bTime https://pkg.go.dev/github.com/djherbis/times
 	}
 
 	tag, err := x.Get(exif.DateTimeOriginal)

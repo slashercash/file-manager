@@ -84,13 +84,13 @@ func scanDir(dir string) ([]string, error) {
 			messages = append(messages, fmt.Sprintf("%s/%s: only files expected on this level", dirStr, entry.Name()))
 			continue
 		}
-		dateStr, err := internal.ReadDate(filepath.Join(dir, entry.Name()))
-		if err != nil {
-			return nil, err
-		}
+		dateStr, _ := internal.ReadDate(filepath.Join(dir, entry.Name()))
+		// if err != nil {
+		// 	return nil, err
+		// }
 		splitted := strings.Split(dateStr, ":")
-		if len(splitted) >= 2 && yearStr == splitted[0] && yearStr == splitted[1] {
-			messages = append(messages, fmt.Sprintf("%s: date does not match with path - %s", dirStr, dateStr))
+		if len(splitted) < 2 || yearStr != splitted[0] || monthStr != splitted[1] {
+			messages = append(messages, fmt.Sprintf("%s/%s: date does not match with path - %s", dirStr, entry.Name(), dateStr))
 		}
 	}
 
