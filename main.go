@@ -2,10 +2,11 @@ package main
 
 import (
 	"errors"
+	"file-manager/internal"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
+	"strings"
 )
 
 func main() {
@@ -55,6 +56,10 @@ func subMain(args []string) error {
 		}
 	}
 
+	for _, message := range messages {
+		println(message)
+	}
+
 	print(len(messages))
 
 	return nil
@@ -65,14 +70,8 @@ func scanDir(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = strconv.Atoi(yearStr)
-	if err != nil {
-		return nil, err
-	}
-	_, err = strconv.Atoi(monthStr)
-	if err != nil {
-		return nil, err
-	}
+
+	dirStr := fmt.Sprintf("ROOT/%s/%s", yearStr, monthStr)
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -82,8 +81,21 @@ func scanDir(dir string) ([]string, error) {
 	var messages []string
 	for _, entry := range entries {
 		if entry.IsDir() {
-			messages = append(messages, fmt.Sprintf("ROOT/%s/%s/%s: only files expected on this level", yearStr, monthStr, entry.Name()))
+			messages = append(messages, fmt.Sprintf("%s/%s: only files expected on this level", dirStr, entry.Name()))
+			continue
 		}
+		dateStr, err := internal.ReadDate(filepath.Join(dir, entry.Name()))
+		if err != nil {
+			return nil, err
+		}
+		splitted := strings.Split(dateStr, ":")
+		if len(splitted) >= 2 && yearStr == splitted[0] && yearStr == splitted[1] {
+			messages = append(messages, fmt.Sprintf("%s: date does not match with path - %s", dirStr, dateStr))
+		}
+	}
+
+	if len(messages) == 0 {
+		messages = append(messages, fmt.Sprintf("%s: OK", dirStr))
 	}
 
 	return messages, nil
@@ -94,7 +106,7 @@ func yearAndMonthFromDirPath(dir string) (year string, month string, err error) 
 	if dir != "" {
 		_, year = filepath.Split(filepath.Clean(dir))
 	} else {
-		return "", "", errors.New("Could not get year and month from path")
+		return "", "", errors.New("could not get year and month from path")
 	}
 	return year, month, nil
 }
