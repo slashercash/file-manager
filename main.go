@@ -27,6 +27,8 @@ func subMain(args []string) error {
 		return err
 	}
 
+	return internal.WriteExif(rootDir)
+
 	rootEntries, err := os.ReadDir(rootDir)
 	if err != nil {
 		return err
