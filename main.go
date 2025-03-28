@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"file-manager/internal"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -26,6 +28,9 @@ func subMain(args []string) error {
 	if err != nil {
 		return err
 	}
+
+	// copyDateToPartnerFile(rootDir)
+	// return nil
 
 	return internal.WriteExif(rootDir)
 
@@ -111,4 +116,37 @@ func yearAndMonthFromDirPath(dir string) (year string, month string, err error) 
 		return "", "", errors.New("could not get year and month from path")
 	}
 	return year, month, nil
+}
+
+func copyDateToPartnerFile(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+
+		splitted := strings.Split(entry.Name(), ".")
+
+		if entry.IsDir() || len(splitted) != 2 || strings.ToLower(splitted[1]) != "jpg" {
+			continue
+		}
+
+		pngFile := filepath.Join(dir, fmt.Sprintf("%s.png", splitted[0]))
+
+		buf := bytes.Buffer{}
+		cmd := exec.Command("exiftool", "-CreationTime", pngFile)
+		cmd.Stdout = &buf
+		if err := cmd.Run(); err != nil {
+			return
+		}
+		dateTimeStr := strings.Split(buf.String(), " : ")[1][0:19]
+
+		jpgFile := filepath.Join(dir, entry.Name())
+		updateArg := fmt.Sprintf("-DateTimeOriginal=\"%s\"", dateTimeStr)
+		cmdUpdate := exec.Command("exiftool", "-overwrite_original", updateArg, jpgFile)
+		if err := cmdUpdate.Run(); err != nil {
+			return
+		}
+	}
 }
